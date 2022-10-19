@@ -6,70 +6,85 @@ import './App.css'
 import Shelves from './components/Shelves'
 import Book from './components/Book'
 
+
 const App = () => {
 
-  const [books, setBooks] = useState([]);
+  const [books, setBooks] = useState([])
   const [mapOfIdToBooks, setMapOfIdToBooks] = useState(new Map());
 
   const [query, setQuery] = useState("");
   const [searchBooks, setSearchBooks] = useState([]);
   const [mergedBooks, setMergedBooks] = useState([]);
 
-  useEffect(() => {
-    BooksAPI.getAll().then((data) => {
-      setBooks(data);
-      setMapOfIdToBooks(createMapOfBooks(data));
-    });
-  }, []);
 
-  useEffect(()=>{
-    if(query)
-    {
-      BooksAPI.search(query).then(data=>{
-        if(data.error)
-        {
-          console.log("error");
-        }
-        else
-        {
-          setSearchBooks(data);
-        }
-      })
-    }
-  })
   useEffect(() => {
-    const combined = searchBooks.map((book) => {
+
+    BooksAPI.getAll()
+      .then(data => {
+        setBooks(data)
+        setMapOfIdToBooks(createMapOfBooks(data))
+      }
+      );
+  }, [])
+
+
+  useEffect(() => {
+
+    const combined = searchBooks.map(book => {
       if (mapOfIdToBooks.has(book.id)) {
         return mapOfIdToBooks.get(book.id);
       } else {
         return book;
       }
-    });
+    })
     setMergedBooks(combined);
-  }, [searchBooks]);
+  }, [searchBooks])
 
+
+  const createMapOfBooks = (books) => {
+    const map = new Map();
+    books.map(book => map.set(book.id, book));
+    return map;
+  }
+  useEffect(()=>{
+    let isActive = true;
+    if(query)
+    {
+      BooksAPI.search(query.trim()).then(data=>{
+        if(data.error)
+        {
+          setSearchBooks([])
+        }
+        else
+        {
+          if(isActive)
+          {
+            setSearchBooks(data);
+          }
+        }
+      })
+    }
+    return () =>
+    {
+      isActive = false
+      setSearchBooks([])
+    }
+  },[query])
   const updateShelf = (book, whereTo) => {
-    const updatedBooks = books.map((b) => {
+    const updatedBooks = books.map(b => {
       if (b.id === book.id) {
         book.shelf = whereTo;
         return book;
       }
       return b;
-    });
+    })
     if (!mapOfIdToBooks.has(book.id)) {
       book.shelf = whereTo;
-      updatedBooks.push(book);
+      updatedBooks.push(book)
     }
     setBooks(updatedBooks);
     BooksAPI.update(book, whereTo);
-  };
-
-  const createMapOfBooks = (books) => {
-    const map = new Map();
-    books.map((book) => map.set(book.id, book));
-    return map;
-  };
-
+  }
   return (
     <Router>
     <div className="app">
